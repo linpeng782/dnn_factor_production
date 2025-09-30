@@ -9,7 +9,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import get_config
 from batch_processor import (
     batch_process_stocks_parallel,
-    batch_process_stocks,
     retry_failed_stocks,
     test_single_stock,
 )
@@ -46,31 +45,18 @@ if __name__ == "__main__":
 
     elif test_mode == "batch":
         # 选择并行或串行处理
-        use_parallel = True  # 设置为False使用串行处理
+
         limit = None  # 处理所有股票
-
-        if use_parallel:
-            print(f"并行批量测试所有股票")
-            batch_process_stocks_parallel(
-                data_dir,
-                save_dir,
-                dataset_end_date,
-                limit,
-                max_workers=max_workers,
-            )
-        else:
-            print(f"串行批量测试所有股票")
-            batch_process_stocks(data_dir, save_dir, dataset_end_date, limit=limit)
-
-    elif test_mode == "retry_failed":
-        # 重试失败的股票
-        use_parallel_retry = True
-        max_workers_retry = 2
-        print(f"重试处理失败的股票")
-        retry_failed_stocks(
+        print(f"并行批量测试所有股票")
+        batch_process_stocks_parallel(
             data_dir,
             save_dir,
             dataset_end_date,
-            use_parallel=use_parallel_retry,
-            max_workers=max_workers_retry,
+            limit,
+            max_workers=max_workers,
         )
+
+    elif test_mode == "retry_failed":
+        # 串行重试失败的股票
+        print(f"串行重试处理失败的股票")
+        retry_failed_stocks(save_dir, dataset_end_date)

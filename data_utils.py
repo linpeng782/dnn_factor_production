@@ -68,59 +68,59 @@ def get_stock_list_from_csv_folder(csv_folder_path, limit=None):
     return stock_list
 
 
-def save_failed_stocks(failed_stocks, process_type):
+def get_failed_log_path():
     """
-    保存失败股票信息到文件
-
-    Args:
-        failed_stocks (list): 失败股票列表
-        process_type (str): 处理类型 (batch_process_parallel, batch_process_single, retry_failed)
+    获取失败日志文件路径
+    
+    Returns:
+        Path: 失败日志文件的完整路径
     """
-    # 创建数据目录
-    data_dir = Path(os.path.dirname(__file__)) / ".." / "data"
-    data_dir.mkdir(exist_ok=True)
-
-    # 生成文件名，包含时间戳和处理类型
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"failed_{process_type}_{timestamp}.txt"
-    file_path = data_dir / filename
-
-    # 写入失败股票信息
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(f"失败股票记录 - {process_type}\n")
-        f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"失败总数: {len(failed_stocks)}\n")
-        f.write("=" * 60 + "\n\n")
-
-        for i, stock in enumerate(failed_stocks, 1):
-            f.write(f"{i:3d}. 股票代码: {stock['stock_code']}\n")
-            f.write(f"     股票名称: {stock['stock_name']}\n")
-            f.write(f"     失败原因: {stock['error']}\n")
-            f.write("-" * 40 + "\n")
-
-    print(f"失败股票记录已保存到: {file_path}")
+    log_dir = Path(__file__).parent / "log"
+    today = datetime.now().strftime("%Y%m%d")
+    return log_dir / f"failed_stocks_{today}.txt"
 
 
-def get_failed_stocks(csv_folder_path, output_folder_path, end_date):
+def get_failed_stocks():
     """
-    获取尚未创建输出CSV文件的股票列表
+    获取需要重试的失败股票列表
+    从TXT日志读取失败股票
+
+    Returns:
+        list: 失败股票信息列表
     """
-    # 获取所有股票列表
-    all_stocks = get_stock_list_from_csv_folder(csv_folder_path)
+    failed_log_file = get_failed_log_path()
 
-    # 获取已存在的输出CSV文件
-    output_folder = Path(output_folder_path)
-    existing_files = set()
+    if failed_log_file.exists():
+        try:
+            failed_stocks = []
+            with open(failed_log_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
 
-    if output_folder.exists():
-        for csv_file in output_folder.glob("*.csv"):
-            existing_files.add(csv_file.name)
+                    # 解析格式：股票代码|股票名称|错误类型|错误信息|时间戳
+                    parts = line.split("|")
+                    if len(parts) >= 2:
+                        stock_code = parts[0]
+                        stock_name = parts[1]
 
-    # 找出尚未创建的股票
-    failed_stocks = []
-    for stock_info in all_stocks:
-        expected_filename = f"{stock_info['converted_code']}-{stock_info['stock_name']}-日线后复权及常用指标-{end_date}.csv"
-        if expected_filename not in existing_files:
-            failed_stocks.append(stock_info)
+                        failed_stocks.append(
+                            {
+                                "converted_code": stock_code,
+                                "stock_name": stock_name,
+                            }
+                        )
 
-    return failed_stocks
+            if failed_stocks:
+                from loguru import logger
+
+                logger.info(f"从日志文件读取到 {len(failed_stocks)} 只失败股票")
+                return failed_stocks
+        except Exception as e:
+            from loguru import logger
+
+            logger.warning(f"读取失败日志文件出错: {e}")
+
+    # 如果没有找到失败记录，返回空列表
+    return []

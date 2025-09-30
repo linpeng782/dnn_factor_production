@@ -137,6 +137,6 @@ max_workers: 4
 # 数据保留小数位数
 decimal_places: 4
 # 测试模式
-test_mode: "retry_failed"  # single, batch, retry_failed
+test_mode: "batch"  # single, batch, retry_failed
 
 

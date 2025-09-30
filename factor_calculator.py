@@ -5,6 +5,8 @@
 
 import sys
 import os
+from pathlib import Path
+from datetime import datetime
 
 # 添加项目根目录到路径（用于导入factor_utils）
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -134,19 +136,18 @@ def generate_factors_for_stock(stock_symbol, end_date):
         # 删除第一行数据（因为prev_close计算导致第一行为NaN）
         daily_factors = daily_factors.iloc[1:]
 
-        # 找出换手率为0的行
-        zero_turnover_rows = daily_factors[daily_factors["换手率(%)"] == 0]
-
-        if len(zero_turnover_rows) > 0:
-            print(f"\n换手率为0的日期数量: {len(zero_turnover_rows)}")
-            zero_turnover_dates = zero_turnover_rows["交易日期"].tolist()
-
-        # 过滤掉换手率为0的行
+        # 过滤掉停牌的股票
         daily_factors_filtered = daily_factors[daily_factors["换手率(%)"] > 0]
 
         # 返回过滤后的DataFrame（移除了换手率为0的行）
         return daily_factors_filtered
 
     except Exception as e:
-        print(f"处理股票 {stock_symbol} 时出错: {str(e)}")
+        from loguru import logger
+
+        # 记录到日志
+        error_msg = f"{type(e).__name__} - {str(e)}"
+        logger.error(f"处理股票 {stock_symbol} 时出错: {error_msg}")
+
+        # 返回None，让上层决定是否记录到文件
         return None
