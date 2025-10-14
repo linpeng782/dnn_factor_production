@@ -1,62 +1,63 @@
 import os
 import sys
 from datetime import datetime
+from loguru import logger
 
 # 添加项目根目录到sys.path（必须在导入其他模块之前）
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 导入配置
-from config import get_config
+from config import RAW_DATA_DIR, ENHANCED_DATA_DIR
 from batch_processor import (
-    batch_process_stocks_parallel,
+    run_parallel_stock_processing,
     retry_failed_stocks,
-    test_single_stock,
+    _process_single_stock,  # 仅用于单股票测试
 )
+from pathlib import Path
 
 
 # 主执行函数
 if __name__ == "__main__":
-    # 获取配置信息
-    config = get_config()
 
     # 从配置中获取参数
-    dataset_end_date = config["dataset_end_date"]
-    test_mode = config["test_mode"]
-    max_workers = config["max_workers"]
+    dataset_end_date = "2025-10-13"
+    test_mode = "retry_failed"
 
-    DATA_PATH = "/Users/didi/DATA/dnn_model"
-    data_dir = os.path.join(DATA_PATH, "raw", "日线后复权及常用指标csv")
+    data_dir = RAW_DATA_DIR
     timestamp = datetime.now().strftime("%Y%m%d")
-    save_dir = os.path.join(DATA_PATH, "enhanced", "enhanced_factors_csv_" + timestamp)
+    save_dir = f"{ENHANCED_DATA_DIR}_{timestamp}"
 
     # 确保输出目录存在
     os.makedirs(save_dir, exist_ok=True)
 
-    print(f"淘宝数据路径: {data_dir}")
-    print(f"因子数据保存路径: {save_dir}")
-    print(f"数据下载结束日期: {dataset_end_date}")
-    print(f"因子数据保存时间戳: {timestamp}")
+    logger.info(f"数据源路径: {data_dir}")
+    logger.info(f"因子数据保存路径: {save_dir}")
+    logger.info(f"数据下载结束日期: {dataset_end_date}")
+    logger.info(f"因子数据保存时间戳: {timestamp}")
 
     # 执行相应的测试模式
     if test_mode == "single":
         # 测试单只股票
-        stock_code = "000001.XSHE"
-        test_single_stock(stock_code, save_dir, dataset_end_date)
+        logger.success("测试单只股票")
+        stock_info = {"converted_code": "000001.XSHE", "stock_name": "平安银行"}  # 示例
+        output_folder = Path(save_dir)
+        is_success, error_message = _process_single_stock(
+            stock_info, output_folder, dataset_end_date
+        )
 
     elif test_mode == "batch":
         # 选择并行或串行处理
 
-        limit = None  # 处理所有股票
-        print(f"并行批量测试所有股票")
-        batch_process_stocks_parallel(
+        limit = 50  # 处理所有股票
+        logger.success(f"并行批量测试所有股票")
+        run_parallel_stock_processing(
             data_dir,
             save_dir,
             dataset_end_date,
             limit,
-            max_workers=max_workers,
         )
 
     elif test_mode == "retry_failed":
         # 串行重试失败的股票
-        print(f"串行重试处理失败的股票")
+        logger.success(f"串行重试处理失败的股票")
         retry_failed_stocks(save_dir, dataset_end_date)
