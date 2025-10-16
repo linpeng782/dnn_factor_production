@@ -1,0 +1,25 @@
+# 因子工程定时任务配置
+# 
+# 使用方法:
+#   安装: crontab crontab.txt
+#   查看: crontab -l
+#   编辑: crontab -e
+#   删除: crontab -r
+#
+# 时间格式: 分 时 日 月 周 命令
+#          * * * * * command
+#
+# 字段说明:
+#   分钟 (0-59)
+#   小时 (0-23)
+#   日期 (1-31)
+#   月份 (1-12)
+#   星期 (0-7, 0和7都代表周日)
+#
+# 说明:
+#   - 脚本会自动使用当天日期作为数据截止日期
+#   - 输出日志保存在 /Users/didi/Data/dnn_model/logs/ 目录
+#   - 使用 run_batch_factor_processing.py 处理所有股票
+
+# 每天晚上20:30执行因子数据处理
+30 20 * * * /Users/didi/dnn_model/factor_engineering/run_daily_factor_processing.sh >> /Users/didi/Data/dnn_model/logs/cron.log 2>&1

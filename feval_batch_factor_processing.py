@@ -13,19 +13,18 @@ from batch_processor import (
     retry_failed_stocks,
     _process_single_stock,  # 仅用于单股票测试
 )
-from pathlib import Path
 
 
 # 主执行函数
 if __name__ == "__main__":
 
     # 从配置中获取参数
-    dataset_end_date = "2025-10-13"
-    test_mode = "retry_failed"
+    dataset_end_date = "20251015"
+    test_mode = "batch"
+    test_limit = None
 
     data_dir = RAW_DATA_DIR
-    timestamp = datetime.now().strftime("%Y%m%d")
-    save_dir = f"{ENHANCED_DATA_DIR}_{timestamp}"
+    save_dir = f"{ENHANCED_DATA_DIR}_{dataset_end_date}"
 
     # 确保输出目录存在
     os.makedirs(save_dir, exist_ok=True)
@@ -33,28 +32,25 @@ if __name__ == "__main__":
     logger.info(f"数据源路径: {data_dir}")
     logger.info(f"因子数据保存路径: {save_dir}")
     logger.info(f"数据下载结束日期: {dataset_end_date}")
-    logger.info(f"因子数据保存时间戳: {timestamp}")
 
     # 执行相应的测试模式
     if test_mode == "single":
         # 测试单只股票
         logger.success("测试单只股票")
-        stock_info = {"converted_code": "000001.XSHE", "stock_name": "平安银行"}  # 示例
-        output_folder = Path(save_dir)
+        stock_info = {"converted_code": "000001.XSHE", "stock_name": "平安银行"}
         is_success, error_message = _process_single_stock(
-            stock_info, output_folder, dataset_end_date
+            stock_info, save_dir, dataset_end_date
         )
 
     elif test_mode == "batch":
-        # 选择并行或串行处理
+        # 并行批量测试所有股票
 
-        limit = 50  # 处理所有股票
         logger.success(f"并行批量测试所有股票")
         run_parallel_stock_processing(
             data_dir,
             save_dir,
             dataset_end_date,
-            limit,
+            test_limit,
         )
 
     elif test_mode == "retry_failed":
